@@ -36,6 +36,37 @@
 #include <InterruptCounter.h>
 #include <math.h>
 #include <avr/wdt.h>
+#include <avr/pgmspace.h>
+
+// compile time options, before #include "bGeigieMini.h"
+#define GPS_MTK 1
+#define GPS_CANMORE 2
+#ifndef __RELEASE_NAME
+	#define __RELEASE_NAME "1.x.y_abcdef"
+#endif
+#ifndef __VERSION_VERBOSE
+	#define __VERSION_VERBOSE "unset [something is wrong]"
+#endif
+#ifndef ENABLE_DIAGNOSTIC
+	#define ENABLE_DIAGNOSTIC 0
+#endif
+#ifndef PLUSSHIELD
+	#define PLUSSHIELD 0
+#endif
+#ifndef JAPAN_POST
+	#define JAPAN_POST 0
+#endif
+#ifndef TX_ENABLED
+	#define TX_ENABLED 1
+#endif
+#ifndef GPS_PROGRAMMING
+	#define GPS_PROGRAMMING 1
+#endif
+#ifndef GPS_TYPE
+	#define GPS_TYPE GPS_MTK
+#endif
+
+#include "bGeigieMini.h"
 
 #define TIME_INTERVAL 5000
 #define NX 12
@@ -48,20 +79,7 @@
 #define BMRDD_EEPROM_ID 100
 #define BMRDD_ID_LEN 3
 
-// compile time options
-#define ENABLE_DIAGNOSTIC 0
-#define PLUSSHIELD 0
-#define JAPAN_POST 0
-#define TX_ENABLED 1
-#define GPS_PROGRAMMING 1
 
-// GPS type
-#define GPS_MTK 1
-#define GPS_CANMORE 2
-#define GPS_TYPE GPS_MTK
-
-// make sure to include that after JAPAN_POST is defined
-#include "version.h"
 
 // defines for status bits
 #define SET_STAT(var, pos) var |= pos
@@ -72,7 +90,7 @@
 #define SD_STAT 4
 #define WR_STAT 8
 
-static const int chipSelect = 10;
+static const int chipSelect = 10;	// SD card select
 static const int radioSelect = A3;
 static const int sdPwr = 4;
 
@@ -103,11 +121,15 @@ File dataFile;
 // the line buffer for serial receive and send
 static char line[LINE_SZ];
 
-static char msg1[] PROGMEM = "SD init...\n";
-static char msg2[] PROGMEM = "Card failure...\n";
-static char msg3[] PROGMEM = "Card initialized\n";
-static char msg4[] PROGMEM = "Error: Log file cannot be opened.\n";
-static char msg5[] PROGMEM = "Device Id: ";
+const prog_char msg0[] PROGMEM = {"# NEW LOG\n# firmware="};
+const prog_char msg1[] PROGMEM = {"SD init...\n"};
+const prog_char msg2[] PROGMEM = {"Card failure...\n"};
+const prog_char msg3[] PROGMEM = {"Card initialized\n"};
+const prog_char msg4[] PROGMEM = {"Error: Log file cannot be opened.\n"};
+const prog_char msg5[] PROGMEM = {"Device Id: "};
+const prog_char msg6[] PROGMEM = {__RELEASE_NAME};		// about 16 bytes
+const prog_char msg7[] PROGMEM = {__VERSION_VERBOSE};	// can be quite long, now 128 bytes
+#define MAX_BUFF 32
 
 char filename[13];      // placeholder for filename
 char hdr[6] = "BMRDD";  // header for sentence
@@ -115,7 +137,6 @@ char dev_id[BMRDD_ID_LEN+1];  // device id
 char ext_log[] = ".log";
 char ext_bak[] = ".bak";
 
-static char fileHeader[] PROGMEM = "# NEW LOG\n# firmware=";
 
 
 // Status vector
@@ -141,7 +162,7 @@ int log_created = 0;
 /**************************************************************************/
 void setup()
 {
-  char tmp[25];
+  char tmp[MAX_BUFF];
 
   // init serial
   Serial.begin(9600);
@@ -149,9 +170,6 @@ void setup()
   // enable and reset the watchdog timer
   wdt_enable(WDTO_8S);    // the arduino will automatically reset if it hangs for more than 8s
   wdt_reset();
-#if TIME_INTERVAL > 7000
-  Serial.println("WARNING: LOOP INTERVAL CLOSE TO WATCHDOG TIMOUT");
-#endif
   
   // initialize and program the GPS module
 #if GPS_PROGRAMMING
@@ -159,9 +177,8 @@ void setup()
 #endif
 
   // print header to serial
-  strcpy_P(tmp, fileHeader);
-  Serial.print(tmp);
-  Serial.println(version);
+  strcpy_P(tmp, msg0); Serial.print(tmp);
+  strcpy_P(tmp, msg6); Serial.println(tmp);
 
   // make sure that the default chip select pin is set to
   // output, even if you don't use it:
@@ -347,29 +364,28 @@ void loop()
         dataFile = SD.open(filename, FILE_WRITE);
         if (dataFile)
         {
-          Serial.print("Filename: ");
-          Serial.println(filename);
+          char msg_buff[MAX_BUFF];
+          Serial.print("Filename: "); Serial.println(filename);
+
           dataFile.print("\n");
-          strcpy_P(tmp, fileHeader);
-          dataFile.print(tmp);
-          dataFile.println(version);
+          strcpy_P(msg_buff, msg0); dataFile.print(msg_buff);
+          strcpy_P(msg_buff, msg6); dataFile.println(msg_buff);
           dataFile.close();
         }
         else
         {
           char tmp[40];
-          strcpy_P(tmp, msg4);
-          Serial.print(tmp);
+          strcpy_P(tmp, msg4); Serial.print(tmp);
         }
         // write to backup file as well
         strcpy(filename+8, ext_bak);
         dataFile = SD.open(filename, FILE_WRITE);
         if (dataFile)
         {
+          char msg_buff[MAX_BUFF];
           dataFile.print("\n");
-          strcpy_P(tmp, fileHeader);
-          dataFile.print(tmp);
-          dataFile.println(version);
+          strcpy_P(msg_buff, msg0); dataFile.print(msg_buff);
+          strcpy_P(msg_buff, msg6); dataFile.println(msg_buff);
           dataFile.close();
         }
         else
@@ -745,3 +761,5 @@ void gps_send_message(const uint8_t *msg, uint16_t len)
 #endif
 }
 #endif /* GPS_CANMORE */
+
+// vim: set tabstop=4 shiftwidth=4 syntax=c foldmethod=marker :
