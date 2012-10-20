@@ -1,52 +1,34 @@
+RELEASE_DIR := $(CURDIR)/../releases
 BUILD_DATE := $(shell date +%F)
-VERSION := $(shell cat VERSION)
-DEFAULT_ARGS := VERSION=$(VERSION) BUILD_DATE=$(BUILD_DATE)
 
-RELEASE := ../releases/Nano_MCA-$(VERSION).dfu
-MCA_LIB := MCA_LIB/project/gcc
-MCA_APP := MCA_APP/project/gcc
+DEFAULT_ARGS := BUILD_DATE=$(BUILD_DATE) RELEASE_DIR=$(RELEASE_DIR)
 
-SUBDIRS := $(MCA_LIB) $(MCA_APP)
 
-.PHONY:	all $(MCA_LIB) $(MCA_APP)
+UPLOAD_CMD := avrdude -q -V -p atmega328p -c arduino -b 57600 -P /dev/ttyUSB0
 
-all: release
+SUBDIRS := bGeigieMini
 
-release: $(RELEASE)
+.PHONY:	all $(SUBDIRS)
 
-upload: $(RELEASE)
-	@echo
-	@echo "====================================================================="
-	@echo "Will try to reflash your Nano, press Ctrl+C to abort"
-	@echo "Connect the Nano via USB and power it off."
-	@echo "Press and hold on the "down" (\/) button and power on the Nano."
-	@echo "You should see \"Firmware Upgrading...\" on its display."
-	@echo "====================================================================="
-	@echo "Press Enter when ready..."
-	@read
-	dfu-util -a 0 -D $(RELEASE)
-	@echo "====================================================================="
-	@echo "Done flashing, please power off the Nano!"
-	@echo "Disconnect the USB cable and power back on to confirm the firmare version."
-	@echo "====================================================================="
-	@echo
+all: bGeigieMini
 
-$(RELEASE): $(MCA_LIB)/mca-lib.bin $(MCA_APP)/mca-app.bin
-	../tools/dfu.py \
-		-b 0x8004000:$(MCA_LIB)/mca-lib.bin \
-		-b 0x800C000:$(MCA_APP)/mca-app.bin \
-		$@
-	@echo "The firmware is ready for upload: $@"
+flash:
+ifndef FIRMWARE
+	@echo -e "Please run as:\n\tmake flash FIRMWARE=$(RELEASE_DIR)/bGeigieMini-1.3.9_001111.hex"
+else
+	$(UPLOAD_CMD) -U flash:w:${FIRMWARE}:i
+endif
 
-$(MCA_LIB)/mca-lib.bin $(MCA_APP)/mca-app.bin: $(SUBDIRS)
+
+JP:
+	$(MAKE) --directory=bGeigieMini $(DEFAULT_ARGS) ENABLE_DIAGNOSTIC=0 PLUSSHIELD=0 JAPAN_POST=1 TX_ENABLED=1 GPS_PROGRAMMING=1
 
 $(SUBDIRS):
 	$(MAKE) --directory=$@ $(DEFAULT_ARGS)
 
-clean:
+clean size release upload:
 	for d in $(SUBDIRS); do $(MAKE) --directory=$$d $@ $(DEFAULT_ARGS); done
 
 distclean: clean
 	for d in $(SUBDIRS); do $(MAKE) --directory=$$d $@ $(DEFAULT_ARGS); done
-	rm -f $(RELEASE)
 
