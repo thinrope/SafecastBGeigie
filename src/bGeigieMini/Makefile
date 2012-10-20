@@ -39,10 +39,14 @@ ARDUINO_LIBS = bGeigie chibi SD SD/utility EEPROM
 # default setting for kalin@Gentoo
 MONITOR_CMD = screen
 ARDUINO_DIR = /usr/share/arduino
-ARDMK_DIR = $(HOME)/sketchbook/NetRad-THS/tools/Arduino-Makefile
+ARDMK_DIR = ../../tools/Arduino-Makefile
 AVR_TOOLS_DIR = /usr
 include ${ARDMK_DIR}/arduino-mk/Arduino.mk
 
-release: build-cli/bGeigieMini.hex
-	cp build-cli/bGeigieMini.hex $(RELEASE_DIR)/$(RELEASE_NAME).hex
+release: $(OBJDIR)/bGeigieMini.hex
+ifdef	RELEASE_DIR
+	cp $(OBJDIR)/bGeigieMini.hex $(RELEASE_DIR)/$(RELEASE_NAME).hex
+else
+	$(error RELEASE_DIR is not defined, may be you need to use make from the parent directory?)
+endif
 

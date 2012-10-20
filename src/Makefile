@@ -3,7 +3,6 @@ BUILD_DATE := $(shell date +%F)
 
 DEFAULT_ARGS := BUILD_DATE=$(BUILD_DATE) RELEASE_DIR=$(RELEASE_DIR)
 
-
 UPLOAD_CMD := avrdude -q -V -p atmega328p -c arduino -b 57600 -P /dev/ttyUSB0
 
 SUBDIRS := bGeigieMini
