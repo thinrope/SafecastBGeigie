@@ -24,7 +24,7 @@ NOTE: For now only bGeigieMini can be built
 
 mkdir Safecast ; cd Safecast
 git clone --recursive https://github.com/thinrope/SafecastBGeigie.git
-cd SafecastBGeigie
+cd SafecastBGeigie/src
 make size upload monitor
 
 
