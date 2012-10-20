@@ -14,3 +14,6 @@ abcdef	:	compile options
 
 I know it is ugly, but some of those options will be moved to execute time
 later on.
+
+Use the provided Makefile or upload it manually (see the command inside the
+Makefile); you'll need avrdude...
