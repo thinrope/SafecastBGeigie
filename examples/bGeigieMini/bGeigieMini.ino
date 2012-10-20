@@ -36,6 +36,25 @@
 #include <InterruptCounter.h>
 #include <math.h>
 #include <avr/wdt.h>
+#include <avr/pgmspace.h>
+
+// compile time options, before #include "bGeigieMini.h"
+#ifndef ENABLE_DIAGNOSTIC
+	#define ENABLE_DIAGNOSTIC 1
+#endif
+#ifndef PLUSSHIELD
+	#define PLUSSHIELD 1
+#endif
+#ifndef JAPAN_POST
+	#define JAPAN_POST 0
+#endif
+#ifndef TX_ENABLED
+	#define TX_ENABLED 1
+#endif
+#ifndef GPS_PROGRAMMING
+	#define GPS_PROGRAMMING 1
+#endif
+#include "bGeigieMini.h"
 
 #define TIME_INTERVAL 5000
 #define NX 12
@@ -48,12 +67,6 @@
 #define BMRDD_EEPROM_ID 100
 #define BMRDD_ID_LEN 3
 
-// compile time options
-#define ENABLE_DIAGNOSTIC 0
-#define PLUSSHIELD 0
-#define JAPAN_POST 0
-#define TX_ENABLED 1
-#define GPS_PROGRAMMING 1
 
 // GPS type
 #define GPS_MTK 1
@@ -72,7 +85,7 @@
 #define SD_STAT 4
 #define WR_STAT 8
 
-static const int chipSelect = 10;
+static const int chipSelect = 10;	// SD card select
 static const int radioSelect = A3;
 static const int sdPwr = 4;
 
@@ -103,11 +116,11 @@ File dataFile;
 // the line buffer for serial receive and send
 static char line[LINE_SZ];
 
-static char msg1[] PROGMEM = "SD init...\n";
-static char msg2[] PROGMEM = "Card failure...\n";
-static char msg3[] PROGMEM = "Card initialized\n";
-static char msg4[] PROGMEM = "Error: Log file cannot be opened.\n";
-static char msg5[] PROGMEM = "Device Id: ";
+const prog_char msg1[] PROGMEM = {"SD init...\n"};
+const prog_char msg2[] PROGMEM = {"Card failure...\n"};
+const prog_char msg3[] PROGMEM = {"Card initialized\n"};
+const prog_char msg4[] PROGMEM = {"Error: Log file cannot be opened.\n"};
+const prog_char msg5[] PROGMEM = {"Device Id: "};
 
 char filename[13];      // placeholder for filename
 char hdr[6] = "BMRDD";  // header for sentence
@@ -115,7 +128,7 @@ char dev_id[BMRDD_ID_LEN+1];  // device id
 char ext_log[] = ".log";
 char ext_bak[] = ".bak";
 
-static char fileHeader[] PROGMEM = "# NEW LOG\n# firmware=";
+const prog_char fileHeader[] PROGMEM = {"# NEW LOG\n# firmware="};
 
 
 // Status vector
